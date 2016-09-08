@@ -2,10 +2,11 @@
 from com.android.monkeyrunner import MonkeyRunner as MR
 from util import *
     
-INTERNAL = 1
+INTERNAL = 2
 class Case(object):
-    def __init__(self, name):
+    def __init__(self, name, brand):
         self.name = name
+        self.brand = brand
     
     def __repr__(self):
         return self.__class__+":"+self.name;
@@ -18,23 +19,16 @@ class Case(object):
 
 class InputMethodCase(Case):
     action = []
-    search = [(1188,165),(342,346)]# click search bar to invoke IME
-    clearSearch = (1152,357)
     device = None
-    def navToSearch(self):
-        for (x, y) in self.search:
-            self.device.touch(x, y, 'DOWN_AND_UP')
-            MR.sleep(INTERNAL)
     
-    def clear(self):
-        self.device.touch(self.clearSearch[0], self.clearSearch[1], 'DOWN_AND_UP')
-            
-    def performActionOn(self, device):
+    def setDevice(self, device):
         self.device = device
-        self.navToSearch()
+        
+    def performActionOn(self, device):
+        raise NotImplementedError()
         
     def setTouchAction(self, action):
-        self.action = action
+        self.action = list(action)
         
     def extendTouchAction(self, action):
         if not self.action:
@@ -48,10 +42,7 @@ class InputMethodCase(Case):
     
     @debug(False)
     def addPinyinInput(self, pinyin):
-        if not self.action:
-            self.action = []
-        for c in pinyin:
-            self.action.append(keyToPoint[pinyinMap[c.lower()]])
+        self.extendTouchAction(pinyinToTouch(pinyin, self.brand))
         
 class ShortcutPhraseCase(InputMethodCase):
     
@@ -59,7 +50,7 @@ class ShortcutPhraseCase(InputMethodCase):
     def performActionOn(self, device):
         if not device:
             raise RuntimeError("device is null")
-        super(ShortcutPhraseCase, self).performActionOn(device)
+        super(ShortcutPhraseCase, self).setDevice(device)
         for (x, y) in self.action:
             device.touch(x, y, 'DOWN_AND_UP')
             MR.sleep(INTERNAL)
